@@ -76,12 +76,14 @@ void processAndSave(const string& path, const string& outputName) {
     vector<vector<Point>> contours;
     Mat result = detectContours(filtered, contours);
     drawDefects(result, contours);
-	if (!fs::exists("results")) { // results 폴더가 없으면 생성
-        fs::create_directory("results");
+    size_t pos = path.find('/'); // '/'의 위치를 찾음
+	string basePath = (pos != string::npos) ? path.substr(0, pos) : path; // '/' 이전 부분 추출 string::npos은 C++에서 문자열을 찾지 못했을 때 반환되는 값
+    if (!fs::exists(basePath + "/results")) { // results 폴더가 없으면 생성
+		fs::create_directory(basePath + "/results"); // 기존 경로에 results 폴더 생성
     }
-	string outputPath = "results/" + outputName; //results 폴더 경로지정
+	string outputPath = basePath+"/results/" + outputName; //results 폴더 경로지정
     imwrite(outputPath, result); //결과 저장
-    cout << "Processed: " << path << " → " << outputName << endl;
+    cout << "Processed: " << path << " → " << outputPath << endl;
 }
 
 // 메인 함수: 흐름만 조절
