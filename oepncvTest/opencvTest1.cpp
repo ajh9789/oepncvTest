@@ -55,7 +55,7 @@ Mat detectContours(const Mat& input, vector<vector<Point>>& filteredContours) {
 void drawDefects(Mat& img, const vector<vector<Point>>& contours) {
     for (const auto& contour : contours) {
         double area = contourArea(contour);
-        if (area < 300) { // 작은 결함만 표시
+        if (area > 1000 && area < 100000) { // 결함의 크기 결정
             Moments m = moments(contour);
             if (m.m00 != 0) {
                 int cx = int(m.m10 / m.m00);
@@ -69,21 +69,21 @@ void drawDefects(Mat& img, const vector<vector<Point>>& contours) {
 
 // 이미지 처리 및 저장 함수
 void processAndSave(const string& path, const string& outputName) { 
-    Mat img;
-    if (!loadImage(path, img)) return;
+   Mat img;
+   if (!loadImage(path, img)) return;
 
-    Mat filtered = applyXrayFilter(img);
-    vector<vector<Point>> contours;
-    Mat result = detectContours(filtered, contours);
-    drawDefects(result, contours);
-    size_t pos = path.find('/'); // '/'의 위치를 찾음
-	string basePath = (pos != string::npos) ? path.substr(0, pos) : path; // '/' 이전 부분 추출 string::npos은 C++에서 문자열을 찾지 못했을 때 반환되는 값
-    if (!fs::exists(basePath + "/results")) { // results 폴더가 없으면 생성
-		fs::create_directory(basePath + "/results"); // 기존 경로에 results 폴더 생성
-    }
-	string outputPath = basePath+"/results/" + outputName; //results 폴더 경로지정
-    imwrite(outputPath, result); //결과 저장
-    cout << "Processed: " << path << " → " << outputPath << endl;
+   Mat filtered = applyXrayFilter(img);
+   vector<vector<Point>> contours;
+   Mat result = detectContours(filtered, contours);
+   drawDefects(result, contours);
+   size_t pos = path.find('/'); // '/'의 위치를 찾음
+   string basePath = (pos != string::npos) ? path.substr(0, pos) : path; // '/' 이전 부분 추출 string::npos은 C++에서 문자열을 찾지 못했을 때 반환되는 값
+   if (!fs::exists(basePath + "/results")) { // results 폴더가 없으면 생성
+       fs::create_directory(basePath + "/results"); // 기존 경로에 results 폴더 생성
+   }
+   string outputPath = basePath + "/results/result_" + outputName; // 'result_' 접두사 추가
+   imwrite(outputPath, result); //결과 저장
+   cout << "Processed: " << path << " → " << outputPath << endl;
 }
 
 // 메인 함수: 흐름만 조절
@@ -100,9 +100,11 @@ int main(int argc, char** argv) { //C++ 기본 main함수에서 argc, argv를 �
 
     drawDefects(result, contours);
     //부분 테스트
-    processAndSave("transistor/test/good/001.png", "result_good_001.png");
-    processAndSave("transistor/test/cut_lead/002.png", "result_cut_lead_002.png");
-    processAndSave("transistor/test/misplaced/003.png", "result_misalign_003.png");
+    processAndSave("hazelnut/test/good/001.png", "good_001.png");
+    processAndSave("hazelnut/test/crack/002.png", "crack_002.png");
+    processAndSave("hazelnut/test/hole/003.png", "hole_003.png");
+    processAndSave("hazelnut/test/cut/004.png", "cut_004.png");
+    processAndSave("hazelnut/test/print/005.png", "print_005.png");
     waitKey(0);
 
     return 0;
