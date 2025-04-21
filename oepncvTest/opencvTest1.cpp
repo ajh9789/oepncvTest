@@ -67,6 +67,20 @@ void drawDefects(Mat& img, const vector<vector<Point>>& contours) {
     }
 }
 
+// 이미지 처리 및 저장 함수
+void processAndSave(const string& path, const string& outputName) { 
+    Mat img;
+    if (!loadImage(path, img)) return;
+
+    Mat filtered = applyXrayFilter(img);
+    vector<vector<Point>> contours;
+    Mat result = detectContours(filtered, contours);
+    drawDefects(result, contours);
+
+    imwrite(outputName, result); // 결과 저장
+    cout << "Processed: " << path << " → " << outputName << endl;
+}
+
 // 메인 함수: 흐름만 조절
 int main(int argc, char** argv) { //C++ 기본 main함수에서 argc, argv를 사용 전자는 명령줄 인자 개수, 후자는 인자 배열
     string path = (argc > 1) ? argv[1] : "Lenna.png";
@@ -80,8 +94,10 @@ int main(int argc, char** argv) { //C++ 기본 main함수에서 argc, argv를 �
     Mat result = detectContours(filtered, contours);
 
     drawDefects(result, contours);
-
-    imshow("Defect Detection", result);
+    //부분 테스트
+    processAndSave("transistor/test/good/001.png", "result_good_001.png");
+    processAndSave("transistor/test/cut_lead/002.png", "result_cut_lead_002.png");
+    processAndSave("transistor/test/misalignment/003.png", "result_misalign_003.png");
     waitKey(0);
 
     return 0;
