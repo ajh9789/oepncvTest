@@ -1,10 +1,10 @@
 ﻿#include <opencv2/imgproc.hpp>
 #include <opencv2/highgui.hpp>
 #include <iostream>
-
+#include <filesystem>
 using namespace cv;
 using namespace std;
-
+namespace fs = std::filesystem;
 // 이미지 로딩 함수
 bool loadImage(const string& path, Mat& out) {
     out = imread(path, 1);
@@ -76,8 +76,11 @@ void processAndSave(const string& path, const string& outputName) {
     vector<vector<Point>> contours;
     Mat result = detectContours(filtered, contours);
     drawDefects(result, contours);
-
-    imwrite(outputName, result); // 결과 저장
+	if (!fs::exists("results")) { // results 폴더가 없으면 생성
+        fs::create_directory("results");
+    }
+	string outputPath = "results/" + outputName; //results 폴더 경로지정
+    imwrite(outputPath, result); //결과 저장
     cout << "Processed: " << path << " → " << outputName << endl;
 }
 
@@ -97,7 +100,7 @@ int main(int argc, char** argv) { //C++ 기본 main함수에서 argc, argv를 �
     //부분 테스트
     processAndSave("transistor/test/good/001.png", "result_good_001.png");
     processAndSave("transistor/test/cut_lead/002.png", "result_cut_lead_002.png");
-    processAndSave("transistor/test/misalignment/003.png", "result_misalign_003.png");
+    processAndSave("transistor/test/misplaced/003.png", "result_misalign_003.png");
     waitKey(0);
 
     return 0;
