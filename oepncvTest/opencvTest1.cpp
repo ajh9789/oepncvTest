@@ -77,7 +77,7 @@ void processAndSave(const string& path, const string& outputName) {
    Mat result = detectContours(filtered, contours);
    drawDefects(result, contours);
    size_t pos = path.find('/'); // '/'의 위치를 찾음
-   string basePath = (pos != string::npos) ? path.substr(0, pos) : path; // '/' 이전 부분 추출 string::npos은 C++에서 문자열을 찾지 못했을 때 반환되는 값
+    string basePath = (pos != string::npos) ? path.substr(0, pos) : path; // '/' 이전 부분 추출
    if (!fs::exists(basePath + "/results")) { // results 폴더가 없으면 생성
        fs::create_directory(basePath + "/results"); // 기존 경로에 results 폴더 생성
    }
