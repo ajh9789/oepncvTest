@@ -5,6 +5,7 @@
 using namespace cv;
 using namespace std;
 namespace fs = std::filesystem;
+
 // 이미지 로딩 함수
 bool loadImage(const string& path, Mat& out) {
     out = imread(path, 1);
@@ -67,44 +68,76 @@ void drawDefects(Mat& img, const vector<vector<Point>>& contours) {
     }
 }
 
-// 이미지 처리 및 저장 함수
-void processAndSave(const string& path, const string& outputName) { 
-   Mat img;
-   if (!loadImage(path, img)) return;
+// 템플릿 매칭 함수
+void runTemplateMatching(const string& templatePath, const string& targetPath) {
+    Mat templ = imread(templatePath, IMREAD_GRAYSCALE);
+    Mat target = imread(targetPath, IMREAD_GRAYSCALE);
+    if (templ.empty() || target.empty()) {
+        cerr << "이미지 로딩 실패" << endl;
+        return;
+    }
 
-   Mat filtered = applyXrayFilter(img);
-   vector<vector<Point>> contours;
-   Mat result = detectContours(filtered, contours);
-   drawDefects(result, contours);
-   size_t pos = path.find('/'); // '/'의 위치를 찾음
-    string basePath = (pos != string::npos) ? path.substr(0, pos) : path; // '/' 이전 부분 추출
-   if (!fs::exists(basePath + "/results")) { // results 폴더가 없으면 생성
-       fs::create_directory(basePath + "/results"); // 기존 경로에 results 폴더 생성
-   }
-   string outputPath = basePath + "/results/result_" + outputName; // 'result_' 접두사 추가
-   imwrite(outputPath, result); //결과 저장
-   cout << "Processed: " << path << " → " << outputPath << endl;
+    Mat result;
+    // 결과 크기 계산
+    int result_cols = target.cols - templ.cols + 1;
+    int result_rows = target.rows - templ.rows + 1;
+    result.create(result_rows, result_cols, CV_32FC1);
+
+    // 템플릿 매칭 실행
+    matchTemplate(target, templ, result, TM_CCOEFF_NORMED);
+    normalize(result, result, 0, 1, NORM_MINMAX, -1, Mat());
+
+    // 가장 유사한 위치 찾기
+    double minVal, maxVal;
+    Point minLoc, maxLoc;
+    minMaxLoc(result, &minVal, &maxVal, &minLoc, &maxLoc);
+
+    cout << "유사도 (TM_CCOEFF_NORMED): " << maxVal << endl;
+    if (maxVal < 0.7) {
+        cout << "⚠️ 불량 가능성 있음!" << endl;
+	}
+	else {
+		cout << "✅ 양품!" << endl;
+	}
+    // 시각화
+    Point matchLoc = maxLoc;
+    rectangle(target, matchLoc, Point(matchLoc.x + templ.cols, matchLoc.y + templ.rows), Scalar(0, 0, 255), 2);
+    imshow("Template Match Result", target);
+    waitKey(0);
 }
 
-// 메인 함수: 흐름만 조절
-int main(int argc, char** argv) { //C++ 기본 main함수에서 argc, argv를 사용 전자는 명령줄 인자 개수, 후자는 인자 배열
-    string path = (argc > 1) ? argv[1] : "Lenna.png";
-
+// 이미지 처리 및 저장 함수
+void processAndSave(const string& path, const string& outputName) {
     Mat img;
-    if (!loadImage(path, img)) return -1;
+    if (!loadImage(path, img)) return;
 
     Mat filtered = applyXrayFilter(img);
-
     vector<vector<Point>> contours;
     Mat result = detectContours(filtered, contours);
-
     drawDefects(result, contours);
-    //부분 테스트
+
+    size_t pos = path.find('/'); // '/'의 위치를 찾음
+    string basePath = (pos != string::npos) ? path.substr(0, pos) : path; // '/' 이전 부분 추출
+    if (!fs::exists(basePath + "/results")) { // results 폴더가 없으면 생성
+        fs::create_directory(basePath + "/results"); // 기존 경로에 results 폴더 생성
+    }
+    string outputPath = basePath + "/results/result_" + outputName; // 'result_' 접두사 추가
+    imwrite(outputPath, result); //결과 저장
+    cout << "Processed: " << path << " → " << outputPath << endl;
+}
+
+// 메인 함수
+int main(int argc, char** argv) {
+    // 템플릿 매칭 테스트
+    runTemplateMatching("hazelnut/train/good/001.png", "hazelnut/test/cut/003.png");
+
+    // 이미지 처리 및 저장
     processAndSave("hazelnut/test/good/001.png", "good_001.png");
     processAndSave("hazelnut/test/crack/002.png", "crack_002.png");
     processAndSave("hazelnut/test/hole/003.png", "hole_003.png");
     processAndSave("hazelnut/test/cut/004.png", "cut_004.png");
     processAndSave("hazelnut/test/print/005.png", "print_005.png");
+
     waitKey(0);
 
     return 0;
