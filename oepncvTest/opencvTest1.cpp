@@ -1,5 +1,7 @@
 ﻿#include <opencv2/imgproc.hpp>
 #include <opencv2/highgui.hpp>
+#include <opencv2/dnn.hpp>  
+#include <opencv2/core/utils/filesystem.hpp> 
 #include <iostream>
 #include <filesystem>
 using namespace cv;
@@ -126,19 +128,57 @@ void processAndSave(const string& path, const string& outputName) {
     cout << "Processed: " << path << " → " << outputPath << endl;
 }
 
-// 메인 함수
-int main(int argc, char** argv) {
-    // 템플릿 매칭 테스트
-    runTemplateMatching("hazelnut/train/good/001.png", "hazelnut/test/cut/003.png");
+// ✅ ONNX 추론 함수: 이미지 1장 예측
+int predictFromONNX(dnn::Net& net, const string& imagePath) {
+    Mat img = imread(imagePath);
+    if (img.empty()) {
+        cerr << "이미지 로딩 실패: " << imagePath << endl;
+        return -1;
+    }
 
-    // 이미지 처리 및 저장
-    processAndSave("hazelnut/test/good/001.png", "good_001.png");
-    processAndSave("hazelnut/test/crack/002.png", "crack_002.png");
-    processAndSave("hazelnut/test/hole/003.png", "hole_003.png");
-    processAndSave("hazelnut/test/cut/004.png", "cut_004.png");
-    processAndSave("hazelnut/test/print/005.png", "print_005.png");
+    Mat blob = dnn::blobFromImage(img, 1.0 / 255.0, Size(224, 224), Scalar(), true, false);
+    net.setInput(blob);
+    Mat output = net.forward();
+
+    Point classIdPoint;
+    double confidence;
+    minMaxLoc(output, 0, &confidence, 0, &classIdPoint);
+    return classIdPoint.x; // 예측 클래스 인덱스
+}
+
+//  전체 test/good 폴더 대상 ONNX 테스트 함수
+void testONNXModel() {
+    dnn::Net net = dnn::readNetFromONNX("hazel_model.onnx");
+
+    vector<string> testImages;
+    utils::fs::glob("hazelnut/test/good", "*.png", testImages);  // good 폴더만
+
+    int correct = 0, total = 0;
+    for (const auto& path : testImages) {
+        int pred = predictFromONNX(net, path);
+        total++;
+        cout << "[" << total << "] " << path << " → 예측 클래스: " << pred << endl;
+        if (pred == 2) correct++; // {'crack': 0, 'cut': 1, 'good': 2, 'hole': 3, 'print': 4}
+    }
+
+    cout << "\n✅ ONNX 모델 정확도 (good): " << (correct * 100.0 / total) << "% (" << correct << "/" << total << ")" << endl;
+}
+
+//  main 함수에 테스트 호출 추가
+int main(int argc, char** argv) {
+    //// 템플릿 매칭 테스트
+    //runTemplateMatching("hazelnut/train/good/001.png", "hazelnut/test/cut/003.png");
+
+    //// 이미지 처리 및 저장
+    //processAndSave("hazelnut/test/good/001.png", "good_001.png");
+    //processAndSave("hazelnut/test/crack/002.png", "crack_002.png");
+    //processAndSave("hazelnut/test/hole/003.png", "hole_003.png");
+    //processAndSave("hazelnut/test/cut/004.png", "cut_004.png");
+    //processAndSave("hazelnut/test/print/005.png", "print_005.png");
+
+    //  ONNX 모델 테스트
+    testONNXModel();
 
     waitKey(0);
-
     return 0;
 }
