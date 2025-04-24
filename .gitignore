@@ -366,3 +366,6 @@ FodyWeavers.xsd
 /oepncvTest/transistor
 /oepncvTest/results
 /oepncvTest/hazelnut
+/oepncvTest/.ipynb_checkpoints
+/oepncvTest/opencvTest2.cpp
+/oepncvTest/opencvTest2.cpp
