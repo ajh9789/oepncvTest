@@ -1,4 +1,4 @@
-# opencvTest: OpenCV + ONNX 기반 불량 검출 실습 프로젝트
+# OpenCV + ONNX 기반 불량 검출 실습 프로젝트
 
 ![C++17](https://img.shields.io/badge/C%2B%2B-17-blue?logo=cplusplus)
 ![OpenCV](https://img.shields.io/badge/OpenCV-4.x-blue?logo=opencv)
